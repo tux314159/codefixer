@@ -1,0 +1,4 @@
+/target
+.env
+Session.vim
+db.sqlite3*
