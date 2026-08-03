@@ -1,3 +1,6 @@
+pub const AUTHENTICATE_URI: &str = "/api/v1/auth/oauth/authenticate";
+pub const CALLBACK_URI: &str = "/api/v1/auth/oauth/callback";
+
 pub mod get {
     use std::sync::Arc;
 
@@ -46,7 +49,6 @@ pub mod get {
         let http_client = reqwest::ClientBuilder::new()
             .redirect(reqwest::redirect::Policy::none())
             .build()?;
-        // Need to do this to convert error to anyhow.
         Ok(http_client.get(url).send().await?.json().await?)
     }
 
@@ -59,10 +61,12 @@ pub mod get {
                 openid_config.authorization_endpoint.clone(),
             ))
             .set_token_uri(TokenUrl::from_url(openid_config.token_endpoint.clone()))
-            .set_redirect_uri(
-                RedirectUrl::new("http://localhost:3000/api/auth/oauth/callback".to_string())
+            .set_redirect_uri(RedirectUrl::new("http://localhost:3000".to_string()).unwrap())
+            .set_redirect_uri(RedirectUrl::from_url(
+                Url::parse(app::SITE_ROOT_URI)?
+                    .join(super::CALLBACK_URI)
                     .unwrap(),
-            );
+            ));
 
         Ok(client)
     }
@@ -103,11 +107,9 @@ pub mod get {
         Ok(auth_url.to_string())
     }
 
-    type AuthSession = axum_login::AuthSession<auth::login::Backend>;
-
     pub async fn callback(
         st: Extension<Arc<app::State>>,
-        auth: AuthSession,
+        auth: auth::AuthSession,
         session: Session,
         Query(params): Query<auth::OauthRedirQueryParams>,
     ) -> ApiResult<Response> {
@@ -148,7 +150,7 @@ pub mod get {
         }?;
 
         let secret = exchange_resp.access_token().clone().into_secret();
-        let redirect_path = session.get("next").await?.unwrap_or("/".to_string());
+        let redirect_path = session.remove("next").await?.unwrap_or("/".to_string());
 
         let user = auth
             .authenticate(auth::login::Credentials {

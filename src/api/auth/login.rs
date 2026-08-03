@@ -60,6 +60,9 @@ impl AuthnBackend for Backend {
     }
 }
 
+pub const LOGIN_URI: &str = "/api/v1/auth/login";
+pub const LOGOUT_URI: &str = "/api/v1/auth/logout";
+
 pub mod get {
     use axum::extract::Query;
     use axum::response::{IntoResponse, Redirect, Response};
@@ -75,5 +78,16 @@ pub mod get {
     pub async fn login(session: Session, Query(params): Query<NextQuery>) -> ApiResult<Response> {
         session.insert("next", params.next).await?;
         Ok(Redirect::to("/api/auth/oauth/authenticate").into_response())
+    }
+}
+
+pub mod post {
+    use crate::auth;
+    use axum::{body::Body, response::Response};
+    use axum_anyhow::ApiResult;
+
+    pub async fn logout(auth: auth::AuthSession) -> ApiResult<Response> {
+        auth.logout().await?;
+        Ok(Response::builder().status(200).body(Body::empty()).unwrap())
     }
 }

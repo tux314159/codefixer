@@ -6,6 +6,7 @@ use anyhow::Result;
 use askama::Template;
 use axum::Extension;
 use axum::response::Html;
+use axum::routing::post;
 use axum::{Router, routing::get};
 use axum_login::{AuthManagerLayerBuilder, login_required};
 use dotenv;
@@ -111,18 +112,20 @@ async fn main() -> Result<()> {
         .route("/problems", get(get_problems))
         .route_layer(login_required!(
             auth::login::Backend,
-            login_url = "/api/auth/login"
+            login_url = auth::login::LOGIN_URI
         ));
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         // API routes.
-        .route("/api/auth/login", get(auth::login::get::login))
+        // Auth.
+        .route(auth::login::LOGIN_URI, get(auth::login::get::login))
+        .route(auth::login::LOGOUT_URI, post(auth::login::post::logout))
         .route(
-            "/api/auth/oauth/authenticate",
+            auth::oauth::AUTHENTICATE_URI,
             get(auth::oauth::get::authenticate),
         )
-        .route("/api/auth/oauth/callback", get(auth::oauth::get::callback))
+        .route(auth::oauth::CALLBACK_URI, get(auth::oauth::get::callback))
         .merge(protected_routes)
         .layer((Extension(appstate.clone()), session_layer, auth_layer));
 

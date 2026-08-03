@@ -73,3 +73,5 @@ type OauthSimpleClient = Client<
     EndpointNotSet,
     EndpointSet,
 >;
+
+type AuthSession = axum_login::AuthSession<login::Backend>;
