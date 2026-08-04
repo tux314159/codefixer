@@ -105,21 +105,22 @@ async fn main() -> Result<()> {
     let protected_routes = Router::new()
         .route("/problems", get(get_problems))
         .route_layer(login_required!(
-            auth::login::Backend,
-            login_url = auth::login::LOGIN_URI
+            api::auth::login::Backend,
+            login_url = api::auth::login::LOGIN_URI
         ));
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         // API routes.
         // Auth.
-        .route(auth::login::LOGIN_URI, get(auth::login::get::login))
-        .route(auth::login::LOGOUT_URI, post(auth::login::post::logout))
+        .route(api::auth::login::LOGIN_URI, get(api::auth::login::get::login))
+        .route(api::auth::login::LOGOUT_URI, post(api::auth::login::post::logout))
         .route(
-            auth::oauth::AUTHENTICATE_URI,
-            get(auth::oauth::get::authenticate),
+            api::auth::oauth::AUTHENTICATE_URI,
+            get(api::auth::oauth::get::authenticate),
         )
-        .route(auth::oauth::CALLBACK_URI, get(auth::oauth::get::callback))
+        .route(api::auth::oauth::CALLBACK_URI, get(api::auth::oauth::get::callback))
+        .route(api::problems::PROBLEMS_URI, get(api::problems::get::problems))
         .merge(protected_routes)
         .layer((Extension(appstate.clone()), session_layer, auth_layer));
 

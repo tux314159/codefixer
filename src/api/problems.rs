@@ -77,20 +77,20 @@ pub struct ProblemDetails {
     pub editorial: ProblemEditorial,
 }
 
+pub const PROBLEMS_URI: &str = "/api/v1/problems/{id}";
+
 pub mod get {
     use std::sync::Arc;
 
     use axum::Json;
-    use axum::body::Body;
-    use axum::extract::{Path, State};
-    use axum::response::Response;
+    use axum::extract::{Path, Extension};
     use axum_anyhow::{ApiResult, OptionExt};
 
     use crate::api::problems::ProblemStatus;
     use crate::app;
 
     pub async fn problems(
-        State(st): State<Arc<app::State>>,
+        Extension(st): Extension<Arc<app::State>>,
         Path(problem_id): Path<i64>,
     ) -> ApiResult<Json<super::Problem>> {
         struct ProblemRow {
@@ -116,18 +116,6 @@ pub mod get {
         .await?
         .context_not_found(format!("No such problem: {problem_id}"))?;
 
-        let q = sqlx::query!(
-            r#"
-            SELECT subtasks.subtask, subtasks.score
-            FROM subtasks
-            INNER JOIN subtask_testcases ON subtasks.subtask = subtask_testcases.FK_subtasks_subtask
-            INNER JOIN submission_testcases ON submission_testcases.FK_submissions_id = subtask_testcases.FK_subtasks_subtask
-            INNER JOIN submissions ON submissions.FK_problems_id = subtasks.FK_problems_id
-            WHERE subtasks.FK_problems_id = ?
-            "#,
-            problem_id
-        );
-
         let num_solves = sqlx::query!(
             r#"
             SELECT DISTINCT
@@ -137,15 +125,7 @@ pub mod get {
             INNER JOIN
                 submissions
                 ON submissions.FK_problems_id = problems.id
-            INNER JOIN
-                subtask_testcases
-                ON subtask_testcases.FK_subtasks_problems_id = submissions.FK_problems_id
-            INNER JOIN
-                submission_testcases
-                ON submission_testcases.FK_submissions_id = submissions.id AND submission_testcases.testcase = subtask_testcases.testcase
-            WHERE problems.id = ?
-            GROUP BY submissions.id
-            HAVING SUM(submission_testcases.status) = 0
+            WHERE problems.id = ? AND submissions.score = 100
             "#,
             problem_id
         ).fetch_all(&st.db_pool).await.iter().len();
@@ -163,6 +143,6 @@ pub mod get {
             revision: String::new(),
         };
 
-        todo!()
+        Ok(Json(r))
     }
 }

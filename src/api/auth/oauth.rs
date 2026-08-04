@@ -92,7 +92,7 @@ pub mod get {
             .execute(&st.db_pool)
             .await?;
 
-        // Delete row after timeout.)
+        // Delete row after timeout.
         task::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_secs(OAUTH_LOGIN_WAIT_TIMEOUT)).await;
             let res = sqlx::query("DELETE FROM oauth_tokens WHERE token = ?")
@@ -118,14 +118,13 @@ pub mod get {
         let verifier = sqlx::query_scalar("SELECT verifier FROM oauth_tokens WHERE token = ?")
             .bind(&params.state)
             .fetch_optional(&mut *tx)
-            .await?;
+            .await?
+            .ok_or(anyhow!("Invalid CSRF token"))?;
         sqlx::query("DELETE FROM oauth_tokens WHERE token = ?")
             .bind(&params.state)
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-
-        let verifier = verifier.ok_or(anyhow!("Invalid CSRF token"))?;
 
         let openid_config = openid_discovery(
             Url::parse("https://accounts.google.com/.well-known/openid-configuration").unwrap(),
