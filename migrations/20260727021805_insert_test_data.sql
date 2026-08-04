@@ -28,8 +28,8 @@ INSERT INTO subtask_testcases (FK_subtasks_problems_id, FK_subtasks_subtask, tes
 INSERT INTO subtask_testcases (FK_subtasks_problems_id, FK_subtasks_subtask, testcase)
 	VALUES (1, 3, 4);
 
-INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, max_time, max_mem)
-	VALUES (1, 1, 1, "C++", 0, 500, 67);
+INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, score)
+	VALUES (1, 1, 1, "C++", 0, 60);
 
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (1, 1, 100, 100, 0, 0);
@@ -40,8 +40,8 @@ INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (1, 4, 100, 100, 0, 1);
 
-INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, max_time, max_mem)
-	VALUES (2, 2, 1, "C++", 0);
+INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, score)
+	VALUES (2, 2, 1, "C++", 0, 100);
 
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (2, 1, 100, 100, 0, 0);
@@ -52,8 +52,8 @@ INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (2, 4, 100, 100, 0, 0);
 
-INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, max_time, max_mem)
-	VALUES (3, 2, 1, "python", 0);
+INSERT INTO submissions (id, FK_users_id, FK_problems_id, language, timestamp, score)
+	VALUES (3, 2, 1, "python", 0, 100);
 
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (3, 1, 999, 420, 0, 0);
