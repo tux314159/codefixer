@@ -77,7 +77,7 @@ pub mod get {
 
     pub async fn login(session: Session, Query(params): Query<NextQuery>) -> ApiResult<Response> {
         session.insert("next", params.next).await?;
-        Ok(Redirect::to("/api/auth/oauth/authenticate").into_response())
+        Ok(Redirect::to("/api/v1/auth/oauth/authenticate").into_response())
     }
 }
 

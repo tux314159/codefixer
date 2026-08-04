@@ -23,7 +23,7 @@ use tower_sessions_sqlx_store::SqliteStore;
 #[derive(Debug)]
 struct Problem {
     id: i64,
-    name: String,
+    title: String,
     source: String,
     tl: i64,
     ml: i64,
@@ -34,12 +34,6 @@ struct Problem {
 #[template(path = "problems.html")]
 struct ProblemsTemplate<'a> {
     problems: &'a Vec<Problem>,
-}
-
-enum ProblemTypes {
-    Batch = 0,
-    Interactive,
-    Communication,
 }
 
 async fn shutdown_signal(abort_jobs: Vec<AbortHandle>) {
