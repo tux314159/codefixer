@@ -64,7 +64,7 @@ pub const LOGIN_URI: &str = "/api/v1/auth/login";
 pub const LOGOUT_URI: &str = "/api/v1/auth/logout";
 
 pub mod get {
-    use axum::extract::Query;
+    use axum_extra::extract::Query;
     use axum::response::{IntoResponse, Redirect, Response};
     use axum_anyhow::ApiResult;
     use serde::Deserialize;
@@ -82,9 +82,10 @@ pub mod get {
 }
 
 pub mod post {
-    use crate::auth;
     use axum::{body::Body, response::Response};
     use axum_anyhow::ApiResult;
+
+    use crate::auth;
 
     pub async fn logout(auth: auth::AuthSession) -> ApiResult<Response> {
         auth.logout().await?;

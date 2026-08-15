@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT MAX(score)\n                FROM submissions\n                WHERE FK_problems_id = ? AND FK_users_id = ?\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "MAX(score)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "78fdb6029b82cff3294026e8fbbf0247170c1656f7801b23500dce3a207d11d9"
+}

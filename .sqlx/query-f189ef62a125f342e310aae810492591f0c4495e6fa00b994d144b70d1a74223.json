@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT FK_users_id\n            FROM problem_authors\n            WHERE FK_problems_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "FK_users_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problem_authors",
+            "name": "FK_users_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f189ef62a125f342e310aae810492591f0c4495e6fa00b994d144b70d1a74223"
+}

@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT id, title, source, tl, ml, runtype, created_at\n            FROM problems\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "name": "source",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "name": "tl",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "tl"
+          }
+        }
+      },
+      {
+        "name": "ml",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "ml"
+          }
+        }
+      },
+      {
+        "name": "runtype",
+        "ordinal": 5,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "runtype"
+          }
+        }
+      },
+      {
+        "name": "created_at",
+        "ordinal": 6,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "problems",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "25cb959580b5c0bd03316199dcb7453a4767c22f67015984f47b1cc2555cde4e"
+}

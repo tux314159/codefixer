@@ -4,13 +4,11 @@ pub const CALLBACK_URI: &str = "/api/v1/auth/oauth/callback";
 pub mod get {
     use std::sync::Arc;
 
-    use crate::app;
-    use crate::auth;
     use anyhow::{Result, anyhow};
     use axum::Extension;
-    use axum::extract::Query;
     use axum::response::{IntoResponse, Redirect, Response};
     use axum_anyhow::{ApiResult, ResultExt};
+    use axum_extra::extract::Query;
     use jsonwebtoken as jwt;
     use oauth2::{
         AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
@@ -20,6 +18,9 @@ pub mod get {
     use tokio::task;
     use tower_sessions::Session;
     use url::Url;
+
+    use crate::app;
+    use crate::auth;
 
     const OAUTH_LOGIN_WAIT_TIMEOUT: u64 = 120;
 

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT DISTINCT\n                submissions.FK_users_id\n            FROM\n                problems\n            INNER JOIN\n                submissions\n                ON submissions.FK_problems_id = problems.id\n            WHERE problems.id = ? AND submissions.score = 100\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "FK_users_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "submissions",
+            "name": "FK_users_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0473ad3489a4e2ffd75e027cbfe58f570a8e6ff9fc5559d75fcf92237a5cceda"
+}

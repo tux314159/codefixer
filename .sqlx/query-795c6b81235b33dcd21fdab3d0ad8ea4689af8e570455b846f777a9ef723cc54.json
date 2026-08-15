@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT score\n            FROM subtasks\n            WHERE FK_problems_id = ?\n            ORDER BY subtask ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "score",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "subtasks",
+            "name": "score"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "795c6b81235b33dcd21fdab3d0ad8ea4689af8e570455b846f777a9ef723cc54"
+}

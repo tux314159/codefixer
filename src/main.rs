@@ -15,6 +15,7 @@ use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use tokio::signal;
 use tokio::task::AbortHandle;
+use tower_http::compression::CompressionLayer;
 use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
@@ -62,17 +63,11 @@ async fn shutdown_signal(abort_jobs: Vec<AbortHandle>) {
     }
 }
 
-async fn get_problems(st: Extension<Arc<app::State>>) -> Html<String> {
-    let rows = sqlx::query_as!(Problem, "SELECT * FROM problems").fetch(&st.db_pool);
-    let rows = rows.map(|x| x.unwrap()).collect().await;
-    let problems_template = ProblemsTemplate { problems: &rows };
-    Html(problems_template.render().unwrap())
-}
-
 //#[axum::debug_handler]
 #[tokio::main]
 async fn main() -> Result<()> {
     axum_anyhow::set_expose_errors(true);
+
     let db_url = dotenv::var("DATABASE_URL").unwrap();
     let pool = SqlitePoolOptions::new().connect(db_url.as_str()).await?;
 
@@ -100,10 +95,12 @@ async fn main() -> Result<()> {
     };
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer.clone()).build();
 
+    let compression_layer = CompressionLayer::new().gzip(true);
+
     let appstate = Arc::new(app::State { db_pool: pool });
 
     let protected_routes = Router::new()
-        .route("/problems", get(get_problems))
+        .route("/bruh", get(async move || println!("bruh")))
         .route_layer(login_required!(
             api::auth::login::Backend,
             login_url = api::auth::login::LOGIN_URI
@@ -113,16 +110,37 @@ async fn main() -> Result<()> {
         .route("/", get(|| async { "Hello, World!" }))
         // API routes.
         // Auth.
-        .route(api::auth::login::LOGIN_URI, get(api::auth::login::get::login))
-        .route(api::auth::login::LOGOUT_URI, post(api::auth::login::post::logout))
+        .route(
+            api::auth::login::LOGIN_URI,
+            get(api::auth::login::get::login),
+        )
+        .route(
+            api::auth::login::LOGOUT_URI,
+            post(api::auth::login::post::logout),
+        )
         .route(
             api::auth::oauth::AUTHENTICATE_URI,
             get(api::auth::oauth::get::authenticate),
         )
-        .route(api::auth::oauth::CALLBACK_URI, get(api::auth::oauth::get::callback))
-        .route(api::problems::PROBLEMS_URI, get(api::problems::get::problems))
+        .route(
+            api::auth::oauth::CALLBACK_URI,
+            get(api::auth::oauth::get::callback),
+        )
+        .route(
+            api::problems::PROBLEMS_URI,
+            get(api::problems::get::problems),
+        )
+        .route(
+            api::problems::PROBLEMS_ID_URI,
+            get(api::problems::get::problems_id),
+        )
         .merge(protected_routes)
-        .layer((Extension(appstate.clone()), session_layer, auth_layer));
+        .layer((
+            Extension(appstate.clone()),
+            session_layer,
+            auth_layer,
+            compression_layer,
+        ));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app)

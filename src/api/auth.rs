@@ -15,10 +15,10 @@ use url::Url;
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct User {
-    id: i64,
-    username: String,
-    google_id: String,
-    email: String,
+    pub id: i64,
+    pub username: String,
+    pub google_id: String,
+    pub email: String,
 }
 
 #[allow(unused)]
@@ -74,4 +74,4 @@ type OauthSimpleClient = Client<
     EndpointSet,
 >;
 
-type AuthSession = axum_login::AuthSession<login::Backend>;
+pub type AuthSession = axum_login::AuthSession<login::Backend>;

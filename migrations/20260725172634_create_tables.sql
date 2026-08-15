@@ -13,7 +13,23 @@ CREATE TABLE problems (
 	tl INTEGER NOT NULL,
 	ml INTEGER NOT NULL,
 	runtype INTEGER NOT NULL,
+	created_at INTEGER NOT NULL,
 	PRIMARY KEY(id AUTOINCREMENT)
+);
+
+CREATE TABLE problem_authors (
+	FK_problems_id INTEGER NOT NULL,
+	FK_users_id INTEGER NOT NULL,
+	PRIMARY KEY(FK_problems_id, FK_users_id),
+	FOREIGN KEY(FK_problems_id) REFERENCES problems(id),
+	FOREIGN KEY(FK_users_id) REFERENCES users(id)
+);
+
+CREATE TABLE problem_tags (
+	FK_problems_id INTEGER NOT NULL,
+	tag VARCHAR(64) NOT NULL,
+	PRIMARY KEY(FK_problems_id, tag),
+	FOREIGN KEY(FK_problems_id) REFERENCES problems(id)
 );
 
 CREATE TABLE subtasks (

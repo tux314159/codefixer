@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                tag\n            FROM\n                problem_tags\n            WHERE FK_problems_id = ?\n            ORDER BY tag\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "tag",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "problem_tags",
+            "name": "tag"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0c5621628538468e8a2acb593f87ad5aec412666d5095ca418c2202caa75587d"
+}
