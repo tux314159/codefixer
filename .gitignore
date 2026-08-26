@@ -1,4 +1,4 @@
 /target
 .env
 Session.vim
-db.sqlite3*
+**/db.sqlite3*

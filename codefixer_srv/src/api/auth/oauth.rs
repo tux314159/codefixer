@@ -6,23 +6,26 @@ pub mod get {
 
     use anyhow::{Result, anyhow};
     use axum::Extension;
+    use axum::body::Body;
     use axum::response::{IntoResponse, Redirect, Response};
-    use axum_anyhow::{ApiResult, ResultExt};
+    use axum_anyhow::{ApiResult, OptionExt, ResultExt};
     use axum_extra::extract::Query;
     use jsonwebtoken as jwt;
     use oauth2::{
         AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
         PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
     };
+    use reqwest::StatusCode;
     use serde::Deserialize;
-    use tokio::task;
+    use tokio::{task, time};
     use tower_sessions::Session;
     use url::Url;
 
     use crate::app;
     use crate::auth;
 
-    const OAUTH_LOGIN_WAIT_TIMEOUT: u64 = 120;
+    const OAUTH_LOGIN_TIMEOUT: u64 = 120;
+    const OAUTH_REGISTER_UNAME_TIMEOUT: u64 = 120;
 
     #[allow(unused)]
     #[derive(Clone, Deserialize)]
@@ -87,22 +90,23 @@ pub mod get {
             .set_pkce_challenge(pkce_challenge)
             .url();
 
-        sqlx::query("INSERT INTO oauth_tokens (token, verifier) VALUES (?, ?)")
-            .bind(csrf_token.secret())
-            .bind(pkce_verifier.secret())
-            .execute(&st.db_pool)
-            .await?;
+        sqlx::query!(
+            "INSERT INTO oauth_tokens (token, verifier) VALUES (?, ?)",
+            csrf_token.secret(),
+            pkce_verifier.secret()
+        )
+        .execute(&st.db_pool)
+        .await?;
 
-        // Delete row after timeout.
+        // Delete row after auth timeout.
         task::spawn(async move {
-            tokio::time::sleep(tokio::time::Duration::from_secs(OAUTH_LOGIN_WAIT_TIMEOUT)).await;
-            let res = sqlx::query("DELETE FROM oauth_tokens WHERE token = ?")
-                .bind(csrf_token.secret())
-                .execute(&st.db_pool)
-                .await;
-            if let Ok(r) = res {
-                println!("Deleted {} expired tokens", r.rows_affected());
-            }
+            time::sleep(time::Duration::from_secs(OAUTH_LOGIN_TIMEOUT)).await;
+            let _ = sqlx::query!(
+                "DELETE FROM oauth_tokens WHERE token = ?",
+                csrf_token.secret()
+            )
+            .execute(&st.db_pool)
+            .await;
         });
 
         Ok(auth_url.to_string())
@@ -112,17 +116,18 @@ pub mod get {
         st: Extension<Arc<app::State>>,
         auth: auth::AuthSession,
         session: Session,
-        Query(params): Query<auth::OauthRedirQueryParams>,
+        Query(params): Query<auth::OauthRedirParams>,
     ) -> ApiResult<Response> {
         // Atomic SELECT then DELETE.
         let mut tx = st.db_pool.begin().await?;
-        let verifier = sqlx::query_scalar("SELECT verifier FROM oauth_tokens WHERE token = ?")
-            .bind(&params.state)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(anyhow!("Invalid CSRF token"))?;
-        sqlx::query("DELETE FROM oauth_tokens WHERE token = ?")
-            .bind(&params.state)
+        let verifier = sqlx::query_scalar!(
+            "SELECT verifier FROM oauth_tokens WHERE token = ?",
+            params.state
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        .ok_or(anyhow!("Invalid CSRF token"))?;
+        sqlx::query!("DELETE FROM oauth_tokens WHERE token = ?", params.state)
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
@@ -152,15 +157,58 @@ pub mod get {
         let secret = exchange_resp.access_token().clone().into_secret();
         let redirect_path = session.remove("next").await?.unwrap_or("/".to_string());
 
+        // Register user if they do not exist yet.
+        if sqlx::query!(
+            "SELECT id FROM users WHERE google_id = ?",
+            id_token.claims.sub
+        )
+        .fetch_optional(&st.db_pool)
+        .await?
+        .is_none()
+        {
+            sqlx::query!(
+                r#"
+                    INSERT INTO users (username, google_id, email, role)
+                    VALUES (NULL, ?, ?, 0)
+                    "#,
+                id_token.claims.sub,
+                id_token.claims.email
+            )
+            .execute(&st.db_pool)
+            .await?;
+            let uid = sqlx::query_scalar!(
+                r#"
+                    SELECT id FROM users
+                    WHERE google_id = ?
+                    "#,
+                id_token.claims.sub,
+            )
+            .fetch_one(&st.db_pool)
+            .await?;
+
+            // Delete user if they haven't set username after a timeout.
+            task::spawn(async move {
+                time::sleep(time::Duration::from_secs(OAUTH_REGISTER_UNAME_TIMEOUT)).await;
+                let _ = sqlx::query!("DELETE FROM users WHERE id = ? AND username is NULL", uid)
+                    .execute(&st.db_pool)
+                    .await;
+            });
+        };
+
         let user = auth
             .authenticate(auth::login::Credentials {
-                user_google_id: id_token.claims.sub,
+                user_google_id: id_token.claims.sub.clone(),
             })
-            .await?;
-        match user {
-            Some(u) => auth.login(&u).await?,
-            None => todo!(),
+            .await?
+            .context_unauthorized("Authentication error")?;
+        auth.login(&user).await?;
+
+        match user.username {
+            Some(_) => Ok(Redirect::to(&redirect_path).into_response()),
+            None => Ok(Response::builder()
+                .status(StatusCode::CREATED)
+                .body(Body::from(user.id.to_string()))
+                .unwrap()),
         }
-        Ok(Redirect::to(&redirect_path).into_response())
     }
 }

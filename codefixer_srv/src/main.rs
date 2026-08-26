@@ -3,14 +3,11 @@ pub mod app;
 
 use crate::api::auth;
 use anyhow::Result;
-use askama::Template;
 use axum::Extension;
-use axum::response::Html;
 use axum::routing::post;
 use axum::{Router, routing::get};
 use axum_login::{AuthManagerLayerBuilder, login_required};
 use dotenv;
-use futures::StreamExt;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::sync::Arc;
 use tokio::signal;
@@ -29,12 +26,6 @@ struct Problem {
     tl: i64,
     ml: i64,
     runtype: i64,
-}
-
-#[derive(Template)]
-#[template(path = "problems.html")]
-struct ProblemsTemplate<'a> {
-    problems: &'a Vec<Problem>,
 }
 
 async fn shutdown_signal(abort_jobs: Vec<AbortHandle>) {
@@ -71,20 +62,26 @@ async fn main() -> Result<()> {
     let db_url = dotenv::var("DATABASE_URL").unwrap();
     let pool = SqlitePoolOptions::new().connect(db_url.as_str()).await?;
 
+    // Clean up temporary tables and rows.
+    sqlx::query("DELETE FROM oauth_tokens")
+        .execute(&pool)
+        .await?;
+    sqlx::query!("DELETE FROM users WHERE username is NULL")
+        .execute(&pool)
+        .await?;
+
     // Set up session manager.
     let session_store = SqliteStore::new(pool.clone())
         .with_table_name("client_sessions")
         .unwrap();
     session_store.migrate().await?;
-    // Should be a temporary table.
-    sqlx::query("DELETE FROM oauth_tokens")
-        .execute(&pool)
-        .await?;
+
     let clean_expired_sessions_job = tokio::task::spawn(
         session_store
             .clone()
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
+
     let session_layer = SessionManagerLayer::new(session_store)
         .with_secure(false) // change this eventually!
         .with_same_site(SameSite::Lax)
@@ -125,6 +122,10 @@ async fn main() -> Result<()> {
         .route(
             api::auth::oauth::CALLBACK_URI,
             get(api::auth::oauth::get::callback),
+        )
+        .route(
+            api::auth::USERS_CONFIRM_URI, //
+            post(api::auth::post::users_confirm),
         )
         .route(
             api::problems::PROBLEMS_URI,

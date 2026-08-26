@@ -17,14 +17,14 @@ with open("migrations/20260725172634_create_tables.sql", "r") as f:
     create_tables_sql = f.read()
 
 try:
-    os.remove("db.sqlite3")
+    os.remove("state/db.sqlite3")
 except:  # noqa: E722, S110
     pass
 
 fake = faker.Faker()
 
 print("Generating users...")
-users = [(1, "tux", "105696583958146482877", "tux@tux.tux")]
+users = [(1, "tux", "105696583958146482877", "tux@tux.tux", 1)]
 for user_id in range(2, N_USERS + 1):
     fname = fake.first_name().lower()
     lname = fake.last_name().lower()
@@ -32,7 +32,7 @@ for user_id in range(2, N_USERS + 1):
     name = f"{fname}_{nonce}"
     gid = fake.unique.aba()
     email = f"{fname}.{lname}@{nonce}.example.com"
-    user = (user_id, name, str(gid), email)
+    user = (user_id, name, str(gid), email, 1)
     users.append(user)
 
 problems = []
@@ -114,14 +114,14 @@ for sub_id in range(1, N_SUBMISSIONS + 1):
     subs.append((sub_id, user, problem, "C++", timestamp, score))
 
     # Connect to an existing database
-with sqlite3.connect("db.sqlite3") as conn:
+with sqlite3.connect("state/db.sqlite3") as conn:
     cur = conn.cursor()
     print("Creating tables")
     cur.executescript(create_tables_sql)
 
     print("Inserting users")
     cur.executemany(
-        "INSERT INTO users (id, username, google_id, email) VALUES (?, ?, ?, ?)",
+        "INSERT INTO users (id, username, google_id, email, role) VALUES (?, ?, ?, ?, ?)",
         users,
     )
     print("Inserting problems")

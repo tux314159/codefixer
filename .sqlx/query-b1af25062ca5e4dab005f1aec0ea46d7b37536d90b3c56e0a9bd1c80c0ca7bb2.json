@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT verifier FROM oauth_tokens WHERE token = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "verifier",
+        "ordinal": 0,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "oauth_tokens",
+            "name": "verifier"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b1af25062ca5e4dab005f1aec0ea46d7b37536d90b3c56e0a9bd1c80c0ca7bb2"
+}

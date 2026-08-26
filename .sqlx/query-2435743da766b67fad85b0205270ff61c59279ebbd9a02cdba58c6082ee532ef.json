@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT id, username, google_id, email\n                FROM users\n                WHERE id = ?\n            ",
+  "query": "\n                SELECT id, username, google_id, email, role\n                FROM users\n                WHERE google_id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "email"
           }
         }
+      },
+      {
+        "name": "role",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "role"
+          }
+        }
       }
     ],
     "parameters": {
@@ -53,10 +64,11 @@
     },
     "nullable": [
       false,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "12399b1d0decd308fe6d756b7eb1259b37768045dc02d305770b3fda52e9c9e2"
+  "hash": "2435743da766b67fad85b0205270ff61c59279ebbd9a02cdba58c6082ee532ef"
 }

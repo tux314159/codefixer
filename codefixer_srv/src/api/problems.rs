@@ -3,7 +3,7 @@ use url::Url;
 
 type UnixTime = i64; // signed time since the epoch in milliseconds
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub enum SubmissionPermitted {
     Allowed,
     LoginRequired,
@@ -12,7 +12,7 @@ pub enum SubmissionPermitted {
     ProblemClosed,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct SubmissionPolicy {
     pub allowed: SubmissionPermitted,
     pub allowed_languages: Vec<String>,
@@ -21,15 +21,16 @@ pub struct SubmissionPolicy {
     pub remaining_submissions: Option<i64>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub enum ProblemEditorial {
+    #[schema(value_type = String)]
     Available(Url),
     NotPublished,
     ContestActive,
     SolveRequired,
 }
 
-#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub enum ProblemType {
     Batch = 1,
     Interactive = 2,
@@ -45,14 +46,14 @@ fn to_problem_type(t: i64) -> ProblemType {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 // isomorphic to Option lol
 pub enum ProblemStatus {
     Unattempted,
     Attempted(i64), // score
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct ProblemSummary {
     pub id: i64,
     pub title: String,
@@ -63,19 +64,19 @@ pub struct ProblemSummary {
     pub solves: i64,
     pub status: ProblemStatus,
     pub created_at: UnixTime,
-    pub revision: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct ProblemAttachment {
     pub name: String,
     pub content_type: String,
     pub size: i64,
+    #[schema(value_type = String)]
     pub url: Url,
     pub expires_at: UnixTime,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct ProblemDetails {
     pub summary: ProblemSummary,
     pub statement_html: String,
@@ -88,7 +89,7 @@ pub struct ProblemDetails {
     pub editorial: ProblemEditorial,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(utoipa::IntoParams, Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct ProblemCollectionPage {
     items: Vec<ProblemSummary>,
 }
@@ -103,20 +104,19 @@ pub mod get {
     use axum::extract::{Extension, Path};
     use axum_anyhow::{ApiResult, OptionExt};
     use axum_extra::extract::Query;
+    use sea_query::JoinType;
     use sea_query::{Cond, Expr, ExprTrait, Func, NullOrdering, Order, SqliteQueryBuilder, all};
-    use sea_query::{JoinType, OrderedStatement};
-    use sea_query::{QueryStatementBuilder, SimpleExpr};
     use serde::Deserialize;
+    use sqlx::AssertSqlSafe;
     use sqlx::prelude::FromRow;
-    use sqlx::{AssertSqlSafe, Row};
     use tokio::fs;
 
     use crate::api::auth;
     use crate::app;
 
     use super::{
-        ProblemCollectionPage, ProblemEditorial, ProblemStatus, ProblemSummary, ProblemType,
-        SubmissionPermitted, SubmissionPolicy, to_problem_type,
+        ProblemCollectionPage, ProblemDetails, ProblemEditorial, ProblemStatus, ProblemSummary,
+        ProblemType, SubmissionPermitted, SubmissionPolicy, to_problem_type,
     };
 
     #[derive(Copy, Clone, Debug, Deserialize)]
@@ -145,11 +145,16 @@ pub mod get {
         min_difficulty: Option<i32>,
         max_difficulty: Option<i32>,
         rated: Option<bool>,
+        solved: Option<bool>,
         sort: Option<ProblemSort>,
         selected: Option<i32>,
     }
 
-    #[axum::debug_handler]
+    #[utoipa::path(
+        get,
+        path = super::PROBLEMS_URI,
+        responses((status = OK, body = ProblemCollectionPage)),
+    )]
     pub async fn problems(
         Extension(st): Extension<Arc<app::State>>,
         auth: auth::AuthSession,
@@ -157,7 +162,7 @@ pub mod get {
     ) -> ApiResult<Json<ProblemCollectionPage>> {
         let user = auth.user().await;
 
-        #[derive(FromRow)]
+        #[derive(utoipa::ToSchema, FromRow)]
         struct QueryResult {
             id: i64,
             title: String,
@@ -237,7 +242,7 @@ pub mod get {
             let page = params.page.unwrap_or(1);
             query.offset(((page - 1) * limit) as u64);
 
-            if params.types.len() > 0 {
+            if !params.types.is_empty() {
                 let mut types_cond = Cond::any();
                 for c in params
                     .types
@@ -249,11 +254,15 @@ pub mod get {
                 query.cond_where(types_cond);
             }
 
-            if params.tags.len() > 0 {
+            if !params.tags.is_empty() {
                 query.inner_join(
                     "problem_tags",
                     all![Expr::col(("problems", "id")).equals(("problem_tags", "FK_problems_id"))],
                 );
+            }
+
+            if let Some(true) = params.solved {
+                query.and_where(Expr::col("max_score").lt(100));
             }
 
             match params.sort.unwrap_or(ProblemSort::IdAsc) {
@@ -316,12 +325,19 @@ pub mod get {
                     None => ProblemStatus::Unattempted,
                 },
                 created_at: r.created_at,
-                revision: "".to_string(),
             })
             .collect();
         Ok(Json(ProblemCollectionPage { items: problems }))
     }
 
+    #[utoipa::path(
+        get,
+        path = super::PROBLEMS_ID_URI,
+        responses(
+            (status = OK, body = ProblemDetails),
+            (status = NOT_FOUND, body = String)
+        ),
+    )]
     pub async fn problems_id(
         Extension(st): Extension<Arc<app::State>>,
         auth: auth::AuthSession,
@@ -355,18 +371,19 @@ pub mod get {
 
         let max_score = match user {
             None => Some(0),
-            Some(u) => sqlx::query_scalar!(
-                r#"
+            Some(u) => {
+                sqlx::query_scalar!(
+                    r#"
                 SELECT MAX(score)
                 FROM submissions
                 WHERE FK_problems_id = ? AND FK_users_id = ?
                 "#,
-                problem_id,
-                u.id
-            )
-            .fetch_optional(&st.db_pool)
-            .await?
-            .map(|ms| ms.unwrap()),
+                    problem_id,
+                    u.id
+                )
+                .fetch_one(&st.db_pool)
+                .await?
+            }
         };
 
         let authors = sqlx::query_scalar!(
@@ -431,8 +448,7 @@ pub mod get {
                     Some(s) => ProblemStatus::Attempted(s),
                     None => ProblemStatus::Unattempted,
                 },
-                created_at: problem.created_at, // TODO,
-                revision: String::new(),
+                created_at: problem.created_at,
             },
             statement_html: problem_statement,
             tags: tags,
@@ -441,9 +457,10 @@ pub mod get {
             attachments: vec![], // TODO, need to set up R2
             subtasks: subtasks,
             submission_policy: SubmissionPolicy {
+                // TODO
                 allowed: SubmissionPermitted::Allowed,
                 allowed_languages: vec![],
-                max_source_bytes: 1024,      // TODO
+                max_source_bytes: 65536,     // TODO
                 cooldown_seconds: 0,         // TODO,
                 remaining_submissions: None, // TODO
             },

@@ -1,6 +1,7 @@
-use crate::auth;
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use sqlx::SqlitePool;
+
+use crate::auth;
 
 impl AuthUser for auth::User {
     type Id = i64;
@@ -9,7 +10,7 @@ impl AuthUser for auth::User {
     }
 
     fn session_auth_hash(&self) -> &[u8] {
-        return &[]; // TODO
+        &[] // TODO
     }
 }
 
@@ -35,7 +36,7 @@ impl AuthnBackend for Backend {
         sqlx::query_as!(
             auth::User,
             r#"
-                SELECT id, username, google_id, email
+                SELECT id, username, google_id, email, role
                 FROM users
                 WHERE google_id = ?
             "#,
@@ -49,7 +50,7 @@ impl AuthnBackend for Backend {
         sqlx::query_as!(
             auth::User,
             r#"
-                SELECT id, username, google_id, email
+                SELECT id, username, google_id, email, role
                 FROM users
                 WHERE id = ?
             "#,
@@ -64,18 +65,18 @@ pub const LOGIN_URI: &str = "/api/v1/auth/login";
 pub const LOGOUT_URI: &str = "/api/v1/auth/logout";
 
 pub mod get {
-    use axum_extra::extract::Query;
     use axum::response::{IntoResponse, Redirect, Response};
     use axum_anyhow::ApiResult;
+    use axum_extra::extract::Query;
     use serde::Deserialize;
     use tower_sessions::Session;
 
     #[derive(Clone, Debug, Deserialize)]
-    pub struct NextQuery {
+    pub struct NextParams {
         next: String,
     }
 
-    pub async fn login(session: Session, Query(params): Query<NextQuery>) -> ApiResult<Response> {
+    pub async fn login(session: Session, Query(params): Query<NextParams>) -> ApiResult<Response> {
         session.insert("next", params.next).await?;
         Ok(Redirect::to("/api/v1/auth/oauth/authenticate").into_response())
     }
@@ -84,11 +85,15 @@ pub mod get {
 pub mod post {
     use axum::{body::Body, response::Response};
     use axum_anyhow::ApiResult;
+    use reqwest::StatusCode;
 
     use crate::auth;
 
     pub async fn logout(auth: auth::AuthSession) -> ApiResult<Response> {
         auth.logout().await?;
-        Ok(Response::builder().status(200).body(Body::empty()).unwrap())
+        Ok(Response::builder()
+            .status(StatusCode::OK)
+            .body(Body::empty())
+            .unwrap())
     }
 }
