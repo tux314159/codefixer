@@ -1,0 +1,11 @@
+[package]
+name = "grade_testcase"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+codefixer_shared_interface.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+tokio.workspace = true
+lambda_runtime.workspace = true

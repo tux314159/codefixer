@@ -5,6 +5,7 @@ edition = "2024"
 default-run = "codefixer_srv"
 
 [dependencies]
+codefixer_shared_interface = { path = "../codefixer_shared_interface" }
 anyhow = "1.0.104"
 askama = "0.16.0"
 axum = { version = "0.8.9", features = ["macros"] }

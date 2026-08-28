@@ -1,3 +1,4 @@
 [workspace]
-members = [ "codefixer_srv" ]
+members = ["codefixer_srv"]
+exclude = ["codefixer_shared_interface"]
 resolver = "3"

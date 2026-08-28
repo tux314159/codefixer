@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use codefixer_shared_interface::{ProblemLanguage, ProblemType};
+
 type UnixTime = i64; // signed time since the epoch in milliseconds
 
 #[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
@@ -15,7 +17,7 @@ pub enum SubmissionPermitted {
 #[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct SubmissionPolicy {
     pub allowed: SubmissionPermitted,
-    pub allowed_languages: Vec<String>,
+    pub allowed_languages: Vec<ProblemLanguage>,
     pub max_source_bytes: i64,
     pub cooldown_seconds: i64,
     pub remaining_submissions: Option<i64>,
@@ -28,22 +30,6 @@ pub enum ProblemEditorial {
     NotPublished,
     ContestActive,
     SolveRequired,
-}
-
-#[derive(Copy, Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
-pub enum ProblemType {
-    Batch = 1,
-    Interactive = 2,
-    Communication = 3,
-}
-
-fn to_problem_type(t: i64) -> ProblemType {
-    match t {
-        1 => ProblemType::Batch,
-        2 => ProblemType::Interactive,
-        3 => ProblemType::Communication,
-        _ => ProblemType::Batch,
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
@@ -111,13 +97,13 @@ pub mod get {
     use sqlx::prelude::FromRow;
     use tokio::fs;
 
-    use crate::api::auth;
-    use crate::app;
-
     use super::{
         ProblemCollectionPage, ProblemDetails, ProblemEditorial, ProblemStatus, ProblemSummary,
-        ProblemType, SubmissionPermitted, SubmissionPolicy, to_problem_type,
+        SubmissionPermitted, SubmissionPolicy,
     };
+    use crate::api::auth;
+    use crate::app;
+    use codefixer_shared_interface::{ProblemLanguage, ProblemType};
 
     #[derive(Copy, Clone, Debug, Deserialize)]
     pub enum ProblemSort {
@@ -313,7 +299,7 @@ pub mod get {
                 id: r.id,
                 title: r.title,
                 difficulty: None,
-                problem_type: to_problem_type(r.runtype),
+                problem_type: ProblemType::from(r.runtype),
                 source: r.source,
                 authors: match r.authors {
                     None => vec![],
@@ -440,7 +426,7 @@ pub mod get {
                 id: problem_id,
                 title: problem.title,
                 difficulty: None, // TODO
-                problem_type: to_problem_type(problem.runtype),
+                problem_type: ProblemType::from(problem.runtype),
                 source: problem.source,
                 authors: authors,
                 solves: num_solves as i64,
@@ -459,7 +445,11 @@ pub mod get {
             submission_policy: SubmissionPolicy {
                 // TODO
                 allowed: SubmissionPermitted::Allowed,
-                allowed_languages: vec![],
+                allowed_languages: vec![
+                    ProblemLanguage::Cpp,
+                    ProblemLanguage::C,
+                    ProblemLanguage::Python,
+                ],
                 max_source_bytes: 65536,     // TODO
                 cooldown_seconds: 0,         // TODO,
                 remaining_submissions: None, // TODO

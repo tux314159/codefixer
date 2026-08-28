@@ -1,0 +1,10 @@
+[workspace]
+members = ["grade_testcase"]
+resolver = "3"
+
+[workspace.dependencies]
+codefixer_shared_interface = { path = "../codefixer_shared_interface" }
+anyhow = "1"
+serde = "1"
+tokio = { version = "1", features = ["macros"] }
+lambda_runtime = { version = "1.0.1", features = ["anyhow"] }

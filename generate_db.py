@@ -73,11 +73,12 @@ for prob_id in range(1, N_PROBLEMS + 1):
 
     # Generate problems.
     title = " ".join([s.title() for s in fake.words(3)])
+    runtype = random.choice([1, 2, 3])
     source = random.choice(["Classic Problem", "Dunjudge Archive", "NOI 2030"])
     tl = random.choice([1000, 2000])
     ml = random.choice([1024, 2048])
 
-    problem = (prob_id, title, source, tl, ml, 0, 1786780388)
+    problem = (prob_id, title, source, tl, ml, runtype, 1786780388)
     problems.append(problem)
 
     # Generate author relations.
@@ -111,7 +112,8 @@ for sub_id in range(1, N_SUBMISSIONS + 1):
         sub_tcs.append((sub_id, tc, time, mem, 0, status))
 
     score = 100 if s == 0 else (0 if random.random() > 0.7 else random.randint(1, 99))
-    subs.append((sub_id, user, problem, "C++", timestamp, score))
+    language = random.choice([1, 2, 3])
+    subs.append((sub_id, user, problem, language, timestamp, score))
 
     # Connect to an existing database
 with sqlite3.connect("state/db.sqlite3") as conn:

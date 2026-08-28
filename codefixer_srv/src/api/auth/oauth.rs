@@ -25,7 +25,7 @@ pub mod get {
     use crate::auth;
 
     const OAUTH_LOGIN_TIMEOUT: u64 = 120;
-    const OAUTH_REGISTER_UNAME_TIMEOUT: u64 = 120;
+    const OAUTH_REGISTER_UNAME_TIMEOUT: u64 = 300;
 
     #[allow(unused)]
     #[derive(Clone, Deserialize)]
