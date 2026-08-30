@@ -7,6 +7,8 @@ RUN mkdir -p /src/codefixer_functions/src
 RUN mkdir -p /src/codefixer_shared_interface/src
 COPY Cargo.toml Cargo.lock /src
 COPY codefixer_srv/Cargo.toml /src/codefixer_srv/Cargo.toml
+COPY codefixer_functions/Cargo.toml /src/codefixer_functions/Cargo.toml
+COPY codefixer_shared_interface/Cargo.toml /src/codefixer_shared_interface/Cargo.toml
 
 # Create stub main files
 COPY <<EOF /src/stub_main.rs
@@ -17,20 +19,23 @@ RUN cp /src/stub_main.rs /src/codefixer_srv/src/gen_openapi.rs
 RUN cp /src/stub_main.rs /src/codefixer_functions/src/compile_submission.rs
 RUN cp /src/stub_main.rs /src/codefixer_shared_interface/src/lib.rs
 
-COPY codefixer_functions/Cargo.toml /src/codefixer_functions/Cargo.toml
-COPY codefixer_shared_interface/Cargo.toml /src/codefixer_shared_interface/Cargo.toml
-
+# Build dependencies
 WORKDIR /src
 RUN cargo build --workspace --all-targets
+RUN cargo clean --workspace
+RUN rm codefixer_srv/src/main.rs
+RUN rm codefixer_srv/src/gen_openapi.rs
+RUN rm codefixer_functions/src/compile_submission.rs
+RUN rm codefixer_shared_interface/src/lib.rs
 
 # Build
 
 FROM build-base-img AS build-all
 
-COPY codefixer_shared_interface/src src/codefixer_shared_interface/src
-COPY codefixer_srv/src src/codefixer_srv/src
-COPY codefixer_functions/src src/codefixer_functions/src
-COPY migrations src/migrations
+COPY codefixer_shared_interface/src /src/codefixer_shared_interface/src
+COPY codefixer_srv/src /src/codefixer_srv/src
+COPY codefixer_functions/src /src/codefixer_functions/src
+COPY migrations /src/migrations
 COPY state /src/state
 
 WORKDIR /src
