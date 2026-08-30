@@ -5,34 +5,34 @@ edition = "2024"
 default-run = "codefixer_srv"
 
 [dependencies]
-codefixer_shared_interface = { path = "../codefixer_shared_interface" }
-anyhow = "1.0.104"
-askama = "0.16.0"
-axum = { version = "0.8.9", features = ["macros"] }
-axum-anyhow = "0.11.6"
-derive_more = { version = "2.1.1", features = ["display"] }
-dotenv = "0.15.0"
-futures = "0.3.33"
-futures-util = "0.3.33"
-jsonwebtoken = "11.0.0"
-oauth2 = "5.0.0"
-reqwest = { version="0.12" ,features=["json"] }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-sqlx = { version = "0.9.0", features = ["derive", "runtime-tokio", "sqlite-bundled"] }
-time = "0.3.54"
-tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "signal"] }
-tower-sessions = "0.15.0"
-tower-sessions-sqlx-store = { git = "https://github.com/maxcountryman/tower-sessions-stores.git", rev = "75cb75792d0a8d9231723b07e7524897201ef73b", features = ["sqlite"] }
-axum-login = { git = "https://github.com/maxcountryman/axum-login.git", rev = "151c72d7a1b4646830f86b4332e6bd6e34d719a7" }
-url = "2.5.8"
-tower = "0.5.3"
-axum-extra = { version = "0.12.6", features = ["query"] }
-sea-query = "1.0.2"
-tower-http = { version = "0.7.0", features = ["compression-gzip"] }
-utoipa = { version = "5.5.0", features = ["axum_extras"] }
-utoipa-axum = "0.2.0"
-regex = "1.13.1"
+codefixer_shared_interface.workspace = true
+anyhow.workspace = true
+askama.workspace = true
+axum.workspace = true
+axum-anyhow.workspace = true
+derive_more.workspace = true
+dotenv.workspace = true
+futures.workspace = true
+futures-util.workspace = true
+jsonwebtoken.workspace = true
+oauth2.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+time.workspace = true
+tokio.workspace = true
+tower-sessions.workspace = true
+tower-sessions-sqlx-store.workspace = true
+axum-login.workspace = true
+url.workspace = true
+tower.workspace = true
+axum-extra.workspace = true
+sea-query.workspace = true
+tower-http.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
+regex.workspace = true
 
 [[bin]]
 name = "gen-openapi"

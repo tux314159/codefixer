@@ -1,10 +1,16 @@
-[workspace]
-members = ["grade_testcase"]
-resolver = "3"
+[package]
+name = "codefixer_functions"
+version = "0.1.0"
+edition = "2024"
 
-[workspace.dependencies]
-codefixer_shared_interface = { path = "../codefixer_shared_interface" }
-anyhow = "1"
-serde = "1"
-tokio = { version = "1", features = ["macros"] }
-lambda_runtime = { version = "1.0.1", features = ["anyhow"] }
+[dependencies]
+codefixer_shared_interface.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+tokio.workspace = true
+derive_more.workspace = true
+lambda_runtime = { version = "1.3.0", features = ["anyhow", "concurrency-tokio" ] }
+
+[[bin]]
+name = "compile_submission"
+path = "src/compile_submission.rs"

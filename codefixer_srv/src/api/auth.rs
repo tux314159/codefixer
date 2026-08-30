@@ -34,10 +34,6 @@ impl From<i64> for Role {
     }
 }
 
-pub trait UserT {
-    fn is_enabled(&self) -> bool;
-}
-
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct User {
@@ -48,8 +44,8 @@ pub struct User {
     pub role: Role,
 }
 
-impl UserT for User {
-    fn is_enabled(&self) -> bool {
+impl User {
+    pub fn is_enabled(&self) -> bool {
         self.role > Role::Disabled && self.username.is_some()
     }
 }
@@ -171,7 +167,10 @@ pub mod post {
                     ))
                 }
             }
-            Err(_) => Err(axum_anyhow::conflict("Error confirming user", "Unknown error")),
+            Err(_) => Err(axum_anyhow::conflict(
+                "Error confirming user",
+                "Unknown error",
+            )),
         }?;
 
         Ok(Response::builder()
