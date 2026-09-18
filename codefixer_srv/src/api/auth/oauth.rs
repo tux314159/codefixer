@@ -21,8 +21,8 @@ pub mod get {
     use tower_sessions::Session;
     use url::Url;
 
+    use crate::api::auth;
     use crate::app;
-    use crate::auth;
 
     const OAUTH_LOGIN_TIMEOUT: u64 = 120;
     const OAUTH_REGISTER_UNAME_TIMEOUT: u64 = 300;
@@ -160,7 +160,7 @@ pub mod get {
             None => Err(anyhow!("Failed to get ID token")),
         }?;
 
-        let secret = exchange_resp.access_token().clone().into_secret();
+        let _secret = exchange_resp.access_token().clone().into_secret();
         let redirect_path = session.remove("next").await?.unwrap_or("/".to_string());
 
         // Register user if they do not exist yet
@@ -202,7 +202,7 @@ pub mod get {
         };
 
         let user = auth
-            .authenticate(auth::login::Credentials {
+            .authenticate(auth::Credentials {
                 user_google_id: id_token.claims.sub.clone(),
             })
             .await?

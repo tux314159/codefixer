@@ -1,6 +1,9 @@
 pub mod login;
 pub mod oauth;
 
+use std::collections::HashSet;
+
+use axum_login::{AuthUser, AuthnBackend, AuthzBackend, UserId};
 use oauth2::basic::{BasicErrorResponseType, BasicTokenType};
 use oauth2::{
     Client, EmptyExtraTokenFields, EndpointNotSet, EndpointSet, ExtraTokenFields,
@@ -12,11 +15,11 @@ use url::Url;
 
 /* PUBLIC */
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Role {
     Disabled = -1,
     Pending = 0,
-    Trusted = 1,
+    User = 1,
     Admin = 2,
     Superadmin = 3,
 }
@@ -26,7 +29,7 @@ impl From<i64> for Role {
         match r {
             -1 => Role::Disabled,
             0 => Role::Pending,
-            1 => Role::Trusted,
+            1 => Role::User,
             2 => Role::Admin,
             3 => Role::Superadmin,
             _ => Role::Disabled,
@@ -34,6 +37,7 @@ impl From<i64> for Role {
     }
 }
 
+/// A registered user on the site.
 #[allow(unused)]
 #[derive(Clone, Debug)]
 pub struct User {
@@ -47,6 +51,95 @@ pub struct User {
 impl User {
     pub fn is_enabled(&self) -> bool {
         self.role > Role::Disabled && self.username.is_some()
+    }
+}
+
+impl AuthUser for User {
+    type Id = i64;
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+
+    fn session_auth_hash(&self) -> &[u8] {
+        &[] // TODO
+    }
+}
+
+/// Authentication and authorisation backend.
+#[derive(Clone)]
+pub struct Backend {
+    pub db_pool: sqlx::SqlitePool,
+}
+
+/// Credentials used with the backend.
+#[derive(Clone)]
+pub struct Credentials {
+    pub user_google_id: String,
+}
+
+impl AuthnBackend for Backend {
+    type User = User;
+    type Credentials = Credentials;
+    type Error = sqlx::Error;
+
+    async fn authenticate(
+        &self,
+        Credentials { user_google_id }: Self::Credentials,
+    ) -> Result<Option<Self::User>, Self::Error> {
+        sqlx::query_as!(
+            User,
+            r#"
+                SELECT id, username, google_id, email, role
+                FROM users
+                WHERE google_id = ?
+            "#,
+            user_google_id
+        )
+        .fetch_optional(&self.db_pool)
+        .await
+    }
+
+    async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
+        sqlx::query_as!(
+            User,
+            r#"
+                SELECT id, username, google_id, email, role
+                FROM users
+                WHERE id = ?
+            "#,
+            user_id
+        )
+        .fetch_optional(&self.db_pool)
+        .await
+    }
+}
+
+impl AuthzBackend for Backend {
+    type Permission = Role;
+
+    async fn get_user_permissions(
+        &self,
+        user: &Self::User,
+    ) -> Result<HashSet<Self::Permission>, Self::Error> {
+        let role = sqlx::query_scalar!(
+            r#"
+                SELECT role
+                FROM users
+                WHERE id = ?
+            "#,
+            user.id
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+        Ok(HashSet::from([Role::from(role)]))
+    }
+
+    async fn has_perm(
+        &self,
+        user: &Self::User,
+        perm: Self::Permission,
+    ) -> Result<bool, Self::Error> {
+        Ok(self.get_all_permissions(user).await?.contains(&perm))
     }
 }
 
@@ -103,7 +196,7 @@ type OauthSimpleClient = Client<
     EndpointSet,
 >;
 
-pub type AuthSession = axum_login::AuthSession<login::Backend>;
+pub type AuthSession = axum_login::AuthSession<Backend>;
 
 pub const USERS_CONFIRM_URI: &str = "/api/v1/auth/users/me";
 
@@ -116,7 +209,6 @@ pub mod post {
     use reqwest::StatusCode;
     use serde::{Deserialize, Serialize};
 
-    use super as auth;
     use crate::app;
 
     #[derive(Deserialize, Serialize)]
@@ -125,7 +217,7 @@ pub mod post {
     }
 
     pub async fn users_confirm(
-        auth: auth::AuthSession,
+        auth: super::AuthSession,
         st: Extension<Arc<app::State>>,
         Json(payload): Json<UsersConfirmParams>,
     ) -> ApiResult<Response> {

@@ -1,66 +1,3 @@
-use axum_login::{AuthUser, AuthnBackend, UserId};
-use sqlx::SqlitePool;
-
-use crate::auth;
-
-impl AuthUser for auth::User {
-    type Id = i64;
-    fn id(&self) -> Self::Id {
-        self.id
-    }
-
-    fn session_auth_hash(&self) -> &[u8] {
-        &[] // TODO
-    }
-}
-
-#[derive(Clone)]
-pub struct Backend {
-    pub db_pool: SqlitePool,
-}
-
-#[derive(Clone)]
-pub struct Credentials {
-    pub user_google_id: String,
-}
-
-impl AuthnBackend for Backend {
-    type User = auth::User;
-    type Credentials = Credentials;
-    type Error = sqlx::Error;
-
-    async fn authenticate(
-        &self,
-        Credentials { user_google_id }: Self::Credentials,
-    ) -> Result<Option<Self::User>, Self::Error> {
-        sqlx::query_as!(
-            auth::User,
-            r#"
-                SELECT id, username, google_id, email, role
-                FROM users
-                WHERE google_id = ?
-            "#,
-            user_google_id
-        )
-        .fetch_optional(&self.db_pool)
-        .await
-    }
-
-    async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
-        sqlx::query_as!(
-            auth::User,
-            r#"
-                SELECT id, username, google_id, email, role
-                FROM users
-                WHERE id = ?
-            "#,
-            user_id
-        )
-        .fetch_optional(&self.db_pool)
-        .await
-    }
-}
-
 pub const LOGIN_URI: &str = "/api/v1/auth/login";
 pub const LOGOUT_URI: &str = "/api/v1/auth/logout";
 
@@ -94,7 +31,7 @@ pub mod post {
     use axum_anyhow::ApiResult;
     use reqwest::StatusCode;
 
-    use crate::auth;
+    use crate::api::auth;
 
     /// Log a user out. Does nothing if the user is not logged in.
     #[utoipa::path(

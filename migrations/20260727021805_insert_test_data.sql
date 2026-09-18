@@ -1,7 +1,7 @@
-INSERT INTO users (id, username, google_id, email)
-	VALUES (1, "tux", "105696583958146482877", "tux@tux.tux");
-INSERT INTO users (id, username, google_id, email)
-	VALUES (2, "fake tux", "105696583958146482878", "fake@tux.tux");
+INSERT INTO users (id, username, google_id, email, role)
+	VALUES (1, "tux", "105696583958146482877", "tux@tux.tux", 1);
+INSERT INTO users (id, username, google_id, email, role)
+	VALUES (2, "fake tux", "105696583958146482878", "fake@tux.tux", 1);
 
 INSERT INTO problems (id, title, source, tl, ml, runtype, created_at)
 	VALUES (1, "Addition of 2 numbers", "Classic problem", 1000, 1024, 0, 1786775085);
@@ -71,4 +71,3 @@ INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem
 	VALUES (3, 3, 999, 420, 0, 0);
 INSERT INTO submission_testcases (FK_submissions_id, testcase, max_time, max_mem, exit_code, status)
 	VALUES (3, 4, 999, 420, 0, 0);
-

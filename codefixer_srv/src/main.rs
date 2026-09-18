@@ -1,7 +1,6 @@
 pub mod api;
 pub mod app;
 
-use crate::api::auth;
 use anyhow::Result;
 use axum::Extension;
 use axum::routing::post;
@@ -87,7 +86,7 @@ async fn main() -> Result<()> {
         .with_same_site(SameSite::Lax)
         .with_expiry(Expiry::OnInactivity(time::SignedDuration::hours(24)));
 
-    let backend = auth::login::Backend {
+    let backend = api::auth::Backend {
         db_pool: pool.clone(),
     };
     let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer.clone()).build();
@@ -103,7 +102,7 @@ async fn main() -> Result<()> {
     let protected_routes = Router::new()
         .route("/bruh", get(async move || println!("bruh")))
         .route_layer(login_required!(
-            api::auth::login::Backend,
+            api::auth::Backend,
             login_url = api::auth::login::LOGIN_URI
         ));
 

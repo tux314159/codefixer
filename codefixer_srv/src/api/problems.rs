@@ -83,6 +83,7 @@ pub struct ProblemCollectionPage {
 
 pub const PROBLEMS_URI: &str = "/api/v1/problems";
 pub const PROBLEMS_ID_URI: &str = "/api/v1/problems/{id}";
+pub const PROBLEMS_ID_SUBMIT_URI: &str = "/api/v1/problems/{id}/submit";
 
 pub mod get {
     use std::sync::Arc;
@@ -122,6 +123,7 @@ pub mod get {
 
     #[derive(Clone, Debug, Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
     #[into_params(parameter_in = Query)]
+    #[allow(dead_code)]
     pub struct ProblemsParams {
         q: Option<String>,
         limit: Option<i32>,
@@ -467,5 +469,22 @@ pub mod get {
         };
 
         Ok(Json(r))
+    }
+
+    /// Submit a solution to a problem.
+    #[utoipa::path(
+        post,
+        path = super::PROBLEMS_ID_SUBMIT_URI,
+        responses(
+            (status = OK, body = ProblemDetails),
+            (status = NOT_FOUND, body = String)
+        ),
+    )]
+    pub async fn problems_id_submit(
+        Extension(_st): Extension<Arc<app::State>>,
+        _auth: auth::AuthSession,
+        Path(_problem_id): Path<i64>,
+    ) -> ApiResult<Json<ProblemDetails>> {
+        todo!()
     }
 }
