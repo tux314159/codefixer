@@ -78,6 +78,7 @@ pub struct ProblemDetails {
 #[derive(utoipa::IntoParams, Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct ProblemCollectionPage {
     items: Vec<ProblemSummary>,
+    selected: Option<i64>,
 }
 
 pub const PROBLEMS_URI: &str = "/api/v1/problems";
@@ -105,7 +106,7 @@ pub mod get {
     use crate::app;
     use codefixer_shared_interface::{ProblemLanguage, ProblemType};
 
-    #[derive(Copy, Clone, Debug, Deserialize)]
+    #[derive(Copy, Clone, Debug, Deserialize, utoipa::ToSchema)]
     pub enum ProblemSort {
         IdAsc,
         IdDesc,
@@ -119,7 +120,8 @@ pub mod get {
         Oldest,
     }
 
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, utoipa::IntoParams, utoipa::ToSchema)]
+    #[into_params(parameter_in = Query)]
     pub struct ProblemsParams {
         q: Option<String>,
         limit: Option<i32>,
@@ -132,13 +134,16 @@ pub mod get {
         max_difficulty: Option<i32>,
         rated: Option<bool>,
         solved: Option<bool>,
+        #[param(inline)]
         sort: Option<ProblemSort>,
-        selected: Option<i32>,
+        selected: Option<i64>,
     }
 
+    /// Fetch a paginated list of problems, with sorting and filtering options.
     #[utoipa::path(
         get,
         path = super::PROBLEMS_URI,
+        params(ProblemsParams),
         responses((status = OK, body = ProblemCollectionPage)),
     )]
     pub async fn problems(
@@ -313,9 +318,13 @@ pub mod get {
                 created_at: r.created_at,
             })
             .collect();
-        Ok(Json(ProblemCollectionPage { items: problems }))
+        Ok(Json(ProblemCollectionPage {
+            items: problems,
+            selected: params.selected,
+        }))
     }
 
+    /// Fetch a single problem by ID.
     #[utoipa::path(
         get,
         path = super::PROBLEMS_ID_URI,
@@ -328,7 +337,7 @@ pub mod get {
         Extension(st): Extension<Arc<app::State>>,
         auth: auth::AuthSession,
         Path(problem_id): Path<i64>,
-    ) -> ApiResult<Json<super::ProblemDetails>> {
+    ) -> ApiResult<Json<ProblemDetails>> {
         let user = auth.user().await;
 
         let problem = sqlx::query!(

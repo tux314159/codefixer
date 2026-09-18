@@ -13,6 +13,7 @@ use std::sync::Arc;
 use tokio::signal;
 use tokio::task::AbortHandle;
 use tower_http::compression::CompressionLayer;
+use tower_http::cors;
 use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::SqliteStore;
@@ -54,7 +55,6 @@ async fn shutdown_signal(abort_jobs: Vec<AbortHandle>) {
     }
 }
 
-//#[axum::debug_handler]
 #[tokio::main]
 async fn main() -> Result<()> {
     axum_anyhow::set_expose_errors(true);
@@ -94,6 +94,10 @@ async fn main() -> Result<()> {
 
     let compression_layer = CompressionLayer::new().gzip(true);
 
+    let cors_layer = cors::CorsLayer::new()
+        .allow_origin(cors::Any) // Open access to selected route
+        .allow_methods([reqwest::Method::GET, reqwest::Method::POST]);
+
     let appstate = Arc::new(app::State { db_pool: pool });
 
     let protected_routes = Router::new()
@@ -105,6 +109,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
+        .route("/api-docs/openapi.json", get(api::openapi))
         // API routes.
         // Auth.
         .route(
@@ -138,6 +143,7 @@ async fn main() -> Result<()> {
         .merge(protected_routes)
         .layer((
             Extension(appstate.clone()),
+            cors_layer,
             session_layer,
             auth_layer,
             compression_layer,

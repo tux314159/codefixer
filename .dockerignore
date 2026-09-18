@@ -1,3 +1,6 @@
-Session.vim
-.env
-target/*
+*
+!**/src
+!**/Cargo.toml
+!**/Cargo.lock
+!**/build.rs
+!migrations

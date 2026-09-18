@@ -71,11 +71,18 @@ pub mod get {
     use serde::Deserialize;
     use tower_sessions::Session;
 
-    #[derive(Clone, Debug, Deserialize)]
+    #[derive(Clone, Debug, Deserialize, utoipa::IntoParams)]
     pub struct NextParams {
         next: String,
     }
 
+    /// Log a user in; currently only supports OAuth2 with Google.
+    #[utoipa::path(
+        get,
+        path = super::LOGIN_URI,
+        params(NextParams),
+        responses((status = OK)),
+    )]
     pub async fn login(session: Session, Query(params): Query<NextParams>) -> ApiResult<Response> {
         session.insert("next", params.next).await?;
         Ok(Redirect::to("/api/v1/auth/oauth/authenticate").into_response())
@@ -89,6 +96,12 @@ pub mod post {
 
     use crate::auth;
 
+    /// Log a user out. Does nothing if the user is not logged in.
+    #[utoipa::path(
+        post,
+        path = super::LOGOUT_URI,
+        responses((status = OK))
+    )]
     pub async fn logout(auth: auth::AuthSession) -> ApiResult<Response> {
         auth.logout().await?;
         Ok(Response::builder()

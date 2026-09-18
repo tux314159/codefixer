@@ -75,6 +75,12 @@ pub mod get {
         Ok(client)
     }
 
+    /// Get an OAuth2 authentication URL. Currently just uses Google.
+    #[utoipa::path(
+        get,
+        path = super::AUTHENTICATE_URI,
+        responses((status = OK, body = String)))
+    ]
     pub async fn authenticate(st: Extension<Arc<app::State>>) -> ApiResult<String> {
         let openid_config = openid_discovery(
             Url::parse("https://accounts.google.com/.well-known/openid-configuration").unwrap(),
@@ -98,7 +104,7 @@ pub mod get {
         .execute(&st.db_pool)
         .await?;
 
-        // Delete row after auth timeout.
+        // Delete row after auth timeout
         task::spawn(async move {
             time::sleep(time::Duration::from_secs(OAUTH_LOGIN_TIMEOUT)).await;
             let _ = sqlx::query!(
@@ -118,7 +124,7 @@ pub mod get {
         session: Session,
         Query(params): Query<auth::OauthRedirParams>,
     ) -> ApiResult<Response> {
-        // Atomic SELECT then DELETE.
+        // Atomic SELECT then DELETE
         let mut tx = st.db_pool.begin().await?;
         let verifier = sqlx::query_scalar!(
             "SELECT verifier FROM oauth_tokens WHERE token = ?",
@@ -157,7 +163,7 @@ pub mod get {
         let secret = exchange_resp.access_token().clone().into_secret();
         let redirect_path = session.remove("next").await?.unwrap_or("/".to_string());
 
-        // Register user if they do not exist yet.
+        // Register user if they do not exist yet
         if sqlx::query!(
             "SELECT id FROM users WHERE google_id = ?",
             id_token.claims.sub
@@ -186,7 +192,7 @@ pub mod get {
             .fetch_one(&st.db_pool)
             .await?;
 
-            // Delete user if they haven't set username after a timeout.
+            // Delete user if they haven't set username after a timeout
             task::spawn(async move {
                 time::sleep(time::Duration::from_secs(OAUTH_REGISTER_UNAME_TIMEOUT)).await;
                 let _ = sqlx::query!("DELETE FROM users WHERE id = ? AND username is NULL", uid)

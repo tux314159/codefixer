@@ -11,6 +11,13 @@ tokio.workspace = true
 derive_more.workspace = true
 lambda_runtime = { version = "1.3.0", features = ["anyhow", "concurrency-tokio" ] }
 
+[build-dependencies]
+cc = "1.4.5"
+
 [[bin]]
 name = "compile_submission"
 path = "src/compile_submission.rs"
+
+[[bin]]
+name = "grade_testcase"
+path = "src/grade_testcase.rs"

@@ -33,7 +33,3 @@ tower-http.workspace = true
 utoipa.workspace = true
 utoipa-axum.workspace = true
 regex.workspace = true
-
-[[bin]]
-name = "gen-openapi"
-path = "./src/gen_openapi.rs"

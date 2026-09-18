@@ -2,15 +2,15 @@ use anyhow::Result;
 use derive_more::Display;
 use lambda_runtime::{Diagnostic, Error, LambdaEvent, run, service_fn, tracing};
 use serde::{Deserialize, Serialize};
+use std::fs::Permissions;
+use tokio::fs;
+use tokio::process::Command;
 
 use codefixer_shared_interface::{ProblemLanguage, ProblemType};
-use tokio::process::Command;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     tracing::init_default_subscriber();
-    println!("Hi");
-
     run(service_fn(function_handler)).await
 }
 
@@ -48,9 +48,9 @@ impl From<FunctionError> for Diagnostic {
         use FunctionError::*;
         Diagnostic {
             error_type: match e {
-                TimeoutError => "compile timeout",
-                CompileError(_) => "compile error",
-                UnknownError => "unknown error",
+                TimeoutError => "timeout_err",
+                CompileError(_) => "compile_err",
+                UnknownError => "unknown_err",
             }
             .to_owned(),
             error_message: if let CompileError(m) = e {
@@ -72,14 +72,13 @@ async fn function_handler(
     let runtype = event.payload.runtype;
     let language = event.payload.language;
 
-    compile_file(language, sub_uri).await?;
+    compile_file(language, &sub_uri).await?;
     Command::new("mv")
         .args(vec![COMPILE_OUTPUT_FILE, &sub_id.to_string()])
         .spawn()?
         .wait()
         .await?; // TODO: upload instead
 
-    // Prepare the outgoing message
     let resp = OutgoingMessage {
         req_id: event.context.request_id,
         exe_uri: format!("language {:?}.", language),
@@ -88,7 +87,7 @@ async fn function_handler(
     Ok(resp)
 }
 
-async fn compile_file(language: ProblemLanguage, uri: String) -> Result<(), FunctionError> {
+async fn compile_file(language: ProblemLanguage, uri: &str) -> Result<(), FunctionError> {
     use FunctionError::*;
     use ProblemLanguage::*;
     // TODO: download source and upload executable from/to S3.
@@ -125,7 +124,11 @@ async fn compile_file(language: ProblemLanguage, uri: String) -> Result<(), Func
             ]);
         }
         Python => {
-            cmd.args(vec!["cp", &uri, COMPILE_OUTPUT_FILE]); // just copy
+            cmd.args(vec!["sh", "-c"]);
+            cmd.arg(format!(
+                r#"sed '1i#!/usr/bin/python' '{}' >'{}'"#,
+                &uri, COMPILE_OUTPUT_FILE
+            ));
         }
     };
 
